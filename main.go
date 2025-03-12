@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/GLobyNew/gator/internal/config"
 )
@@ -13,15 +13,18 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = userConfig.SetUser("test")
+	s := state{config: &userConfig}
+	cmds := commands{cmd: make(map[string]func(*state, command) error)}
+	cmds.register("login", handlerLogin)
+
+	args := os.Args[1:]
+	if len(args) == 0 {
+		log.Fatalln("no command provided")
+	}
+
+	cmd := command{name: args[0], args: args[1:]}
+	err = cmds.run(&s, cmd)
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	userConfig, err = config.Read()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Printf("%v\n%v\n", userConfig.DbURL, userConfig.CurrentUserName)
 }
