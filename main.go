@@ -1,10 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
 	"github.com/GLobyNew/gator/internal/config"
+	"github.com/GLobyNew/gator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -13,7 +16,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := state{config: &userConfig}
+	db, err := sql.Open("postgres", userConfig.DbURL)
+	if err != nil {
+		log.Fatalln("can't open db")
+	}
+	dbQueries := database.New(db)
+	s := state{db: dbQueries, cfg: &userConfig}
+
 	cmds := commands{cmd: make(map[string]func(*state, command) error)}
 	cmds.register("login", handlerLogin)
 

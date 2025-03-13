@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/GLobyNew/gator/internal/config"
+	"github.com/GLobyNew/gator/internal/database"
 )
 
 type state struct {
-	config *config.Config
+	db  *database.Queries
+	cfg *config.Config
 }
 
 type command struct {
@@ -43,12 +45,12 @@ func handlerLogin(s *state, cmd command) error {
 		return errors.New("too many args, expect one argument (username)")
 	}
 
-	err := s.config.SetUser(cmd.args[0])
+	err := s.cfg.SetUser(cmd.args[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("User %q has been added in config!\n", s.config.CurrentUserName)
+	fmt.Printf("User %q has been added in config!\n", s.cfg.CurrentUserName)
 	return nil
 
 }
