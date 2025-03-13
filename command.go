@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/GLobyNew/gator/internal/config"
 	"github.com/GLobyNew/gator/internal/database"
+	"github.com/google/uuid"
 )
 
 type state struct {
@@ -38,14 +42,38 @@ func (c *commands) run(s *state, cmd command) error {
 	return errors.New("command not found")
 }
 
-func handlerLogin(s *state, cmd command) error {
+func checkOnlyOneArg(cmd command) error {
 	if len(cmd.args) == 0 {
-		return errors.New("no args in login command, expects username")
+		return errors.New("no args in command")
 	} else if len(cmd.args) > 1 {
-		return errors.New("too many args, expect one argument (username)")
+		return errors.New("too many args, expect one argument")
+	}
+	return nil
+}
+
+func existInDB(s *state, name string) (bool, error) {
+	_, err := s.db.GetUser(context.Background(), name)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+func handlerLogin(s *state, cmd command) error {
+	err := checkOnlyOneArg(cmd)
+	if err != nil {
+		return err
 	}
 
-	err := s.cfg.SetUser(cmd.args[0])
+	exist, err := existInDB(s, cmd.args[0])
+	if err != nil {
+		return err
+	}
+	if !exist {
+		os.Exit(1)
+	}
+
+	err = s.cfg.SetUser(cmd.args[0])
 	if err != nil {
 		return err
 	}
@@ -53,4 +81,27 @@ func handlerLogin(s *state, cmd command) error {
 	fmt.Printf("User %q has been added in config!\n", s.cfg.CurrentUserName)
 	return nil
 
+}
+
+func handlerRegister(s *state, cmd command) error {
+	err := checkOnlyOneArg(cmd)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
+	})
+	if err != nil {
+		os.Exit(1)
+	}
+	fmt.Printf("User %q has been created!\n", user.Name)
+
+	s.cfg.SetUser(user.Name)
+	fmt.Printf("User %q has been added in config!\n", s.cfg.CurrentUserName)
+
+	return nil
 }
