@@ -109,13 +109,37 @@ func handlerRegister(s *state, cmd command) error {
 func handlerReset(s *state, cmd command) error {
 
 	if len(cmd.args) > 0 {
-		return errors.New("reset doesn't expect args")
+		return errors.New("command 'reset' doesn't expect args")
 	}
 
 	err := s.db.DeleteUsers(context.Background())
 
 	if err != nil {
 		os.Exit(1)
+	}
+
+	return nil
+}
+
+func handlerUsers(s *state, cmd command) error {
+
+	if len(cmd.args) > 0 {
+		return errors.New("command 'users' doesn't expect args")
+	}
+
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return err
+	}
+
+	currentUser := s.cfg.CurrentUserName
+
+	for _, user := range users {
+		if user == currentUser {
+			fmt.Printf("* %v (current)\n", user)
+		} else {
+			fmt.Printf("* %v\n", user)
+		}
 	}
 
 	return nil
