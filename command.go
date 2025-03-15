@@ -46,15 +46,6 @@ func (c *commands) run(s *state, cmd command) error {
 	return errors.New("command not found")
 }
 
-func checkOnlyOneArg(cmd command) error {
-	if len(cmd.args) == 0 {
-		return errors.New("no args in command")
-	} else if len(cmd.args) > 1 {
-		return errors.New("too many args, expect one argument")
-	}
-	return nil
-}
-
 func existInDB(s *state, name string) (bool, error) {
 	_, err := s.db.GetUser(context.Background(), name)
 	if err != nil {
@@ -64,9 +55,8 @@ func existInDB(s *state, name string) (bool, error) {
 }
 
 func handlerLogin(s *state, cmd command) error {
-	err := checkOnlyOneArg(cmd)
-	if err != nil {
-		return err
+	if len(cmd.args) != 1 {
+		return errors.New("command 'login' expects only one argument")
 	}
 
 	exist, err := existInDB(s, cmd.args[0])
@@ -88,9 +78,8 @@ func handlerLogin(s *state, cmd command) error {
 }
 
 func handlerRegister(s *state, cmd command) error {
-	err := checkOnlyOneArg(cmd)
-	if err != nil {
-		return err
+	if len(cmd.args) != 1 {
+		return errors.New("command 'register' expects only one argument")
 	}
 
 	user, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
@@ -100,7 +89,7 @@ func handlerRegister(s *state, cmd command) error {
 		Name:      cmd.args[0],
 	})
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 	fmt.Printf("User %q has been created!\n", user.Name)
 
@@ -119,9 +108,14 @@ func handlerReset(s *state, cmd command) error {
 	err := s.db.DeleteUsers(context.Background())
 
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
+	err = s.db.DeleteFeeds(context.Background())
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -160,6 +154,41 @@ func handlerAgg(s *state, cmd command) error {
 	}
 
 	printFeed(feed)
+	return nil
+
+}
+
+func handleAddFeed(s *state, cmd command) error {
+	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	if len(cmd.args) != 2 {
+		return errors.New("command 'addfeed' expect 2 args: <name> <url>")
+	}
+
+	feedName := cmd.args[0]
+	feedURL := cmd.args[1]
+
+	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      feedName,
+		Url:       feedURL,
+		UserID:    currentUser.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fetchedFeed, err := fetchFeed(context.Background(), feed.Url)
+	if err != nil {
+		return err
+	}
+
+	printFeed(fetchedFeed)
+
 	return nil
 
 }
