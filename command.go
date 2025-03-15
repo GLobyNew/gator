@@ -12,6 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	feedURL = "https://www.wagslane.dev/index.xml"
+)
+
 type state struct {
 	db  *database.Queries
 	cfg *config.Config
@@ -143,4 +147,19 @@ func handlerUsers(s *state, cmd command) error {
 	}
 
 	return nil
+}
+
+func handlerAgg(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return errors.New("command 'agg' doesn't expect args")
+	}
+
+	feed, err := fetchFeed(context.Background(), feedURL)
+	if err != nil {
+		return err
+	}
+
+	printFeed(feed)
+	return nil
+
 }
