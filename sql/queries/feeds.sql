@@ -15,3 +15,6 @@ SELECT * FROM feeds WHERE name = $1;
 
 -- name: DeleteFeeds :exec
 DELETE FROM feeds;
+
+-- name: GetFeeds :many
+SELECT name, url, user_id FROM feeds;
