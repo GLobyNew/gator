@@ -54,6 +54,17 @@ func existInDB(s *state, name string) (bool, error) {
 	return true, nil
 }
 
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+		if err != nil {
+			return err
+		}
+		return handler(s, cmd, user)
+	}
+}
+
+
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
 		return errors.New("command 'login' expects only one argument")
@@ -158,11 +169,8 @@ func handlerAgg(s *state, cmd command) error {
 
 }
 
-func handlerAddFeed(s *state, cmd command) error {
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
-	}
+func handlerAddFeed(s *state, cmd command, user database.User) error {
+	
 	if len(cmd.args) != 2 {
 		return errors.New("command 'addfeed' expect 2 args: <name> <url>")
 	}
@@ -176,7 +184,7 @@ func handlerAddFeed(s *state, cmd command) error {
 		UpdatedAt: time.Now(),
 		Name:      feedName,
 		Url:       feedURL,
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 	})
 	if err != nil {
 		return err
@@ -186,7 +194,7 @@ func handlerAddFeed(s *state, cmd command) error {
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feed.ID,
 	})
 	if err != nil {
@@ -226,7 +234,7 @@ func handlerFeeds(s *state, cmd command) error {
 
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
 		return errors.New("command 'follow' expects only one argument <url>")
 	}
@@ -257,7 +265,7 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
+func handlerFollowing(s *state, cmd command, user database.User) error {
 
 	if len(cmd.args) != 0 {
 		return errors.New("command 'following' doesn't expect arguments")
