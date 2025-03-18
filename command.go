@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/GLobyNew/gator/internal/config"
@@ -293,4 +294,36 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 		}
 	}
 	return fmt.Errorf("logged-in user %q don't follow %q feed", user.Name, feedToDelete.Url)
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int32
+	if len(cmd.args) == 1 {
+		parsedLimit, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("invalid limit value: %v", err)
+		}
+		limit = int32(parsedLimit)
+	} else {
+		limit = 2
+	}
+
+
+	posts, err := s.db.GetPostsByUser(context.Background(), database.GetPostsByUserParams{
+		ID:    user.ID,
+		Limit: limit,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		fmt.Println("--------------------------------------------------")
+		fmt.Printf("Title       : %s\n", post.Title)
+		fmt.Printf("Description : %s\n", post.Description)
+		fmt.Printf("Published At: %s\n", post.PublishedAt)
+		fmt.Printf("Feed        : %s\n", post.FeedName)
+		fmt.Println("--------------------------------------------------")
+	}
+	return nil
 }

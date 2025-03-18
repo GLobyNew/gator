@@ -5,6 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/GLobyNew/gator/internal/database"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 func handlerAgg(s *state, cmd command) error {
@@ -40,7 +44,28 @@ func scrapeFeeds(s *state) error {
 	}
 
 	for _, item := range fetchedFeed.Channel.Item {
-		fmt.Printf("* %s\n", item.Title)
+		pubTime, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			return err
+		}
+
+		_, err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID: uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			PublishedAt: pubTime,
+			Title: item.Title,
+			Url: item.Link,
+			Description: item.Description,
+			FeedID: feedToFetch.ID,
+		})
+		if err != nil {
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // 23505 is the PostgreSQL error code for unique violations
+				continue
+			} else {
+				return err
+			} 
+		}
 	}
 
 	return nil
