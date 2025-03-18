@@ -64,7 +64,6 @@ func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) 
 	}
 }
 
-
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
 		return errors.New("command 'login' expects only one argument")
@@ -170,7 +169,7 @@ func handlerAgg(s *state, cmd command) error {
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User) error {
-	
+
 	if len(cmd.args) != 2 {
 		return errors.New("command 'addfeed' expect 2 args: <name> <url>")
 	}
@@ -286,4 +285,38 @@ func handlerFollowing(s *state, cmd command, user database.User) error {
 	}
 
 	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 {
+		return errors.New("command 'unfollow' expects only one argument: <feed url>")
+	}
+
+	// Check if feed is exist in db
+	feedToDelete, err := s.db.GetFeedByURL(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+
+	// We should check that logged-in user even subscribed to feed, before removing it
+	// If exist, remove it, if no - return error
+
+	usersFF, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, uFF := range usersFF {
+		if uFF.FeedUrl == feedToDelete.Url {
+			err = s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+				Name: user.Name,
+				Url:  feedToDelete.Url,
+			})
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("logged-in user %q don't follow %q feed", user.Name, feedToDelete.Url)
 }
