@@ -98,7 +98,7 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues or submit pull requests.
+Don't contribute. It's guided project and I don't to expect to keep track of it.
 
 ## Acknowledgments
 
