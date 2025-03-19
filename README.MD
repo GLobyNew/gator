@@ -4,7 +4,7 @@ Gator is a guided RSS project from Boot.Dev. It allows users to manage RSS feeds
 
 ## Prerequisites
 
-To use Gator, you need:
+To use gator, you need:
 
 - **PostgreSQL**: Ensure you have a running PostgreSQL instance.
 - **Go**: Install Go (version 1.24.1 or later).
